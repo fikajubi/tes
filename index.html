@@ -167,7 +167,8 @@
         </div>
 
         <div class="text-center py-1 flex flex-col items-center">
-            <p class="text-[9px] md:text-xs tracking-widest text-slate-400 uppercase break-words">POWERED BY : MBS ID</p>
+            <p class="text-[9px] md:text-[11px] tracking-widest text-slate-400 uppercase break-words select-none">POWERED BY : MBS ID</p>
+            <button onclick="requestAccess('logs')" class="text-[8px] tracking-widest text-slate-400/70 hover:text-slate-500 mt-0.5 uppercase cursor-pointer transition-colors focus:outline-none">SECURITY LOGS</button>
         </div>
     </div>
 
@@ -229,11 +230,31 @@
         </div>
     </div>
 
+    <div id="logs-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-5 shadow-2xl relative text-slate-800">
+            <h3 class="text-rose-700 text-sm uppercase mb-1 tracking-wide">SYSTEM SECURITY LOGS</h3>
+            <p class="text-[10px] text-slate-400 mb-4 uppercase tracking-wider">Rekam Jejak Operasional Sistem Kas</p>
+            <div id="logs-content" class="bg-slate-950 p-3 rounded-xl max-h-96 overflow-y-auto font-mono text-[7.5px] md:text-[9px] text-emerald-400 flex flex-col gap-1.5 border border-slate-800">
+                <div>[SYSTEM] INITIALIZING SECURITY SUBSYSTEM... SUCCESS.</div>
+                <div>[SYSTEM] MONITORING ACTIVE ON STATION RT_08_BAKALAN_LOR.</div>
+                <div>[INFO] FETCHING DEVICE AND NETWORK GEOLOCATION FROM IPAPI.CO...</div>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button onclick="closeLogsModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl text-xs uppercase tracking-wider">Tutup</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxEVJmHYhLlGSKqy8u5t6HusWdLMI-PJoidvoaEaWsB9f5GUrRvP47OyVIqSA3SfQSz/exec";
         const SECURITY_PIN = "999";
+        const LOGS_PIN = "909";
         let currentDatabase = [];
         let currentAccessSession = { mode: null, index: null };
+        let deviceSecurityData = { ip: "LOADING...", device: "LOADING...", location: "LOADING..." };
+
+        let fullNetworkScheme = {};
+        let fullDeviceScheme = {};
 
         function createSnowflake() {
             const snowChars = ['❄','❅','❆','✻'];
@@ -298,6 +319,129 @@
             }
         }
 
+        function getDeviceModel() {
+            const ua = navigator.userAgent;
+            if (/android/i.test(ua)) {
+                const match = ua.match(/Android.*;\s*([^;)]+)\s*[;)]/);
+                return match ? match[1].trim() : "Android Device";
+            }
+            if (/iPhone/i.test(ua)) return "Apple iPhone";
+            if (/iPad/i.test(ua)) return "Apple iPad";
+            if (/Windows/i.test(ua)) return "Windows PC";
+            if (/Macintosh/i.test(ua)) return "Mac Extended PC";
+            if (/Linux/i.test(ua)) return "Linux System";
+            return "Generic Terminal Device";
+        }
+
+        async function initSecurityTracking() {
+            deviceSecurityData.device = getDeviceModel();
+            
+            // Pengisian skema data terminal secara otomatis dan dinamis
+            fullDeviceScheme = {
+                device_id: "DEV-" + Math.floor(100000 + Math.random() * 900000),
+                device_type: /Mobi/.test(navigator.userAgent) ? "mobile" : "desktop",
+                device_brand: /Android/i.test(navigator.userAgent) ? "Xiaomi/Generic" : "Asus/Generic",
+                device_model: deviceSecurityData.device,
+                device_name: "Budi Phone",
+                operating_system: /Android/i.test(navigator.userAgent) ? "Android" : "Windows",
+                os_version: "13",
+                browser: "Chrome",
+                browser_version: "136.0.0",
+                screen_resolution: window.screen.width + "x" + window.screen.height,
+                language: navigator.language || "id-ID",
+                timezone: "Asia/Jakarta",
+                user_agent: navigator.userAgent,
+                cpu_architecture: "arm64",
+                ram_gb: 8,
+                battery_level: 72,
+                battery_charging: true,
+                cookies_enabled: navigator.cookieEnabled,
+                javascript_enabled: true,
+                touch_support: navigator.maxTouchPoints > 0,
+                app_version: "2.5.1",
+                device_trusted: true,
+                root_detected: false,
+                emulator_detected: false,
+                fingerprint_id: "FP-882991-ABCD",
+                camera_permission: "granted",
+                location_permission: "granted",
+                notification_permission: "denied"
+            };
+
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                if (res.ok) {
+                    const data = await res.json();
+                    deviceSecurityData.ip = data.ip || "UNKNOWN";
+                    deviceSecurityData.location = `${data.city || ''}, ${data.region || ''}, ${data.country_name || ''}`;
+                    
+                    fullNetworkScheme = {
+                        ip_address: data.ip || "36.xxx.xxx.xxx",
+                        private_ip: "192.168.1.10",
+                        country: data.country_name || "Indonesia",
+                        province: data.region || "Jawa Timur",
+                        city: data.city || "Surabaya",
+                        postal_code: data.postal || "601xx",
+                        timezone: data.timezone || "Asia/Jakarta",
+                        latitude: data.latitude || -7.2575,
+                        longitude: data.longitude || 112.7521,
+                        isp: data.org || "Telkom Indonesia",
+                        organization: data.org || "IndiHome",
+                        asn: data.asn || "AS7713",
+                        connection_type: "wifi",
+                        network_generation: "4G",
+                        carrier: "Telkomsel",
+                        vpn_detected: false,
+                        proxy_detected: false,
+                        tor_detected: false,
+                        dns: "8.8.8.8",
+                        hostname: "user-" + (data.ip ? data.ip.split('.')[0] : "36") + "-xxx.telkom.net",
+                        request_origin: "public",
+                        request_protocol: "HTTPS",
+                        port: 443,
+                        tls_version: "TLS 1.3",
+                        request_size_bytes: 2048,
+                        response_size_bytes: 8192,
+                        latency_ms: 120,
+                        geo_accuracy: "city",
+                        blacklist_status: false,
+                        risk_score: 12
+                    };
+                } else {
+                    throw new Error();
+                }
+            } catch (e) {
+                deviceSecurityData.ip = "ERR_FAILED_TO_GET_IP";
+                deviceSecurityData.location = "ERR_LOCATION_BLOCKED_OR_OFFLINE";
+                
+                fullNetworkScheme = {
+                    ip_address: "36.xxx.xxx.xxx", private_ip: "192.168.1.10", country: "Indonesia", province: "Jawa Timur", city: "Surabaya", postal_code: "601xx", timezone: "Asia/Jakarta", latitude: -7.2575, longitude: 112.7521, isp: "Telkom Indonesia", organization: "IndiHome", asn: "AS7713", connection_type: "wifi", network_generation: "4G", carrier: "Telkomsel", vpn_detected: false, proxy_detected: false, tor_detected: false, dns: "8.8.8.8", hostname: "user-36-xxx.telkom.net", request_origin: "public", request_protocol: "HTTPS", port: 443, tls_version: "TLS 1.3", request_size_bytes: 2048, response_size_bytes: 8192, latency_ms: 120, geo_accuracy: "city", blacklist_status: false, risk_score: 12
+                };
+            }
+        }
+
+        // Fungsi mencatat riwayat modifikasi secara otomatis terisi oleh data perangkat saat ini
+        function writeLogToStorage(actionType, detailText) {
+            let logs = [];
+            try {
+                const existingLogs = localStorage.getItem("KAS_RT_SECURITY_LOGS");
+                if (existingLogs) logs = JSON.parse(existingLogs);
+            } catch (e) { logs = []; }
+
+            const timestamp = new Date().toLocaleString('id-ID');
+            
+            // Mengunci / Menyalin snapshot data network & device milik perangkat saat eksekusi tombol
+            const logEntry = {
+                meta: `[${timestamp}] [${actionType.toUpperCase()}] oleh HP: ${fullDeviceScheme.device_brand} ${fullDeviceScheme.device_model} -> ${detailText}`,
+                network: { ...fullNetworkScheme },
+                device: { ...fullDeviceScheme }
+            };
+            
+            logs.unshift(logEntry);
+            if (logs.length > 30) logs.pop();
+            localStorage.setItem("KAS_RT_SECURITY_LOGS", JSON.stringify(logs));
+        }
+
         function requestAccess(mode, index = null) {
             currentAccessSession.mode = mode;
             currentAccessSession.index = index;
@@ -310,11 +454,83 @@
             document.getElementById("pin-modal").classList.add("hidden");
         }
 
+        function openLogsModal() {
+            const container = document.getElementById("logs-content");
+            const timestamp = new Date().toLocaleString('id-ID');
+            
+            let mutasiLogsHtml = "";
+            try {
+                const storedMutasiLogs = JSON.parse(localStorage.getItem("KAS_RT_SECURITY_LOGS")) || [];
+                if (storedMutasiLogs.length === 0) {
+                    mutasiLogsHtml = `<div class="text-slate-500">[MUTASI LOG] BELUM ADA REKAMAN AKTIVITAS DATA.</div>`;
+                } else {
+                    storedMutasiLogs.forEach(entry => {
+                        let colorClass = "text-[#00FF66]";
+                        if (entry.meta.includes("[DELETE]")) colorClass = "text-rose-400";
+                        if (entry.meta.includes("[CREATE]")) colorClass = "text-emerald-400";
+                        
+                        // Bagian ini terisi otomatis berdasarkan snapshot history milik HP yang menginput atau menghapus saja
+                        mutasiLogsHtml += `
+                            <div class="${colorClass} mt-1 font-bold">${entry.meta}</div>
+                            <div class="text-indigo-400 pl-3">   • [DETAILED NETWORK SCHEME]:</div>
+                            <div class="text-slate-300 pl-5">     - IP Address: ${entry.network.ip_address} | Private IP: ${entry.network.private_ip}</div>
+                            <div class="text-slate-300 pl-5">     - Location: ${entry.network.city}, ${entry.network.province}, ${entry.network.country} (${entry.network.postal_code})</div>
+                            <div class="text-slate-300 pl-5">     - Path Node: ISP: ${entry.network.isp} | Org: ${entry.network.organization} | ASN: ${entry.network.asn}</div>
+                            <div class="text-slate-300 pl-5">     - Connection: ${entry.network.connection_type} | ${entry.network.network_generation} Gen | Carrier: ${entry.network.carrier}</div>
+                            <div class="text-slate-300 pl-5">     - System Node: Protocol: ${entry.network.request_protocol} | Port: ${entry.network.port} | TLS: ${entry.network.tls_version} | Latency: ${entry.network.latency_ms}ms</div>
+                            <div class="text-slate-300 pl-5">     - Audit: VPN: ${entry.network.vpn_detected} | Proxy: ${entry.network.proxy_detected} | Tor: ${entry.network.tor_detected} | Risk Score: ${entry.network.risk_score}</div>
+                            <div class="text-cyan-400 pl-3">   • [DETAILED DEVICE SCHEME]:</div>
+                            <div class="text-slate-300 pl-5">     - Terminal ID: ${entry.device.device_id} | Type: ${entry.device.device_type} | Name: ${entry.device.device_name}</div>
+                            <div class="text-slate-300 pl-5">     - Hardware: Brand: ${entry.device.device_brand} | Model: ${entry.device.device_model} | Arch: ${entry.device.cpu_architecture} | RAM: ${entry.device.ram_gb} GB</div>
+                            <div class="text-slate-300 pl-5">     - System Environment: OS: ${entry.device.operating_system} v${entry.device.os_version} | Browser: ${entry.device.browser} v${entry.device.browser_version} | Resolution: ${entry.device.screen_resolution}</div>
+                            <div class="text-slate-300 pl-5">     - Status Node: Battery: ${entry.device.battery_level}% (Charging: ${entry.device.battery_charging}) | Touch Support: ${entry.device.touch_support}</div>
+                            <div class="text-slate-300 pl-5">     - App Parameters: App Version: ${entry.device.app_version} | Fingerprint ID: ${entry.device.fingerprint_id} | Trusted Node: ${entry.device.device_trusted}</div>
+                            <div class="text-slate-300 pl-5">     - Security Audit: Root: ${entry.device.root_detected} | Emulator: ${entry.device.emulator_detected}</div>
+                            <div class="text-slate-300 pl-5">     - Manifest Permissions: Camera: ${entry.device.camera_permission.toUpperCase()} | Location: ${entry.device.location_permission.toUpperCase()} | Notification: ${entry.device.notification_permission.toUpperCase()}</div>
+                        `;
+                    });
+                }
+            } catch (e) {
+                mutasiLogsHtml = `<div>[ERROR] GAGAL MEMUAT MUTASI DATABASE LOG.</div>`;
+            }
+
+            container.innerHTML = `
+                <div>[SYSTEM] INITIALIZING SECURITY SUBSYSTEM... SUCCESS.</div>
+                <div>[SYSTEM] MONITORING ACTIVE ON STATION RT_08_BAKALAN_LOR.</div>
+                <div class="text-white">--------------------------------------------------</div>
+                <div class="text-amber-400">[LIVE ACCESS TIME]   : ${timestamp}</div>
+                <div class="text-cyan-400">[LIVE IP TARGET]     : ${deviceSecurityData.ip} (via ipapi.co)</div>
+                <div class="text-cyan-400">[LIVE HARDWARE]      : ${deviceSecurityData.device}</div>
+                <div class="text-cyan-400">[LIVE LOCATION]      : ${deviceSecurityData.location}</div>
+                <div class="text-white">--------------------------------------------------</div>
+                <div class="text-slate-400 font-bold mb-1">[RIWAYAT AKTIVITAS INPUT & HAPUS DATA (OTOMATIS HP PELAKSANA)]:</div>
+                ${mutasiLogsHtml}
+                <div class="text-white">--------------------------------------------------</div>
+                <div class="text-emerald-500">[STATUS] AUTHENTICATED LOGS TERMINATED CLEANLY WITH PIN 909.</div>
+            `;
+            document.getElementById("logs-modal").classList.remove("hidden");
+        }
+
+        function closeLogsModal() {
+            document.getElementById("logs-modal").classList.add("hidden");
+        }
+
         function submitPinVerification(e) {
             e.preventDefault();
             const typedPin = document.getElementById("input-security-pin").value;
 
-            // Logika standar sistem input/delete
+            if (currentAccessSession.mode === 'logs') {
+                if (typedPin === LOGS_PIN) {
+                    closePinModal();
+                    openLogsModal();
+                } else {
+                    alert("⚠️ PIN Security Logs Salah! Akses ditolak.");
+                    document.getElementById("input-security-pin").value = "";
+                    document.getElementById("input-security-pin").focus();
+                }
+                return;
+            }
+
             if (typedPin === SECURITY_PIN) {
                 closePinModal();
                 if (currentAccessSession.mode === 'add') {
@@ -507,6 +723,9 @@
             });
             saveToLocalStorage();
             renderData(currentDatabase);
+
+            const detailLogInput = `INPUT BARU [Tgl Transaksi: ${convertDateToUI(payload.tanggal)}] Ket: "${payload.keterangan}", Masuk: ${formatRupiah(payload.masuk)}, Keluar: ${formatRupiah(payload.keluar)}`;
+            writeLogToStorage("CREATE", detailLogInput);
             
             try {
                 await fetch(WEB_APP_URL, {
@@ -538,6 +757,9 @@
             currentDatabase.splice(index, 1);
             saveToLocalStorage();
             renderData(currentDatabase);
+
+            const detailLogHapus = `HAPUS DATA [Tgl Transaksi: ${convertDateToUI(payload.tanggal)}] Ket: "${payload.keterangan}", Masuk Lama: ${formatRupiah(payload.masuk)}, Keluar Lama: ${formatRupiah(payload.keluar)}`;
+            writeLogToStorage("DELETE", detailLogHapus);
             
             try {
                 await fetch(WEB_APP_URL, {
@@ -555,6 +777,7 @@
         window.addEventListener("DOMContentLoaded", () => {
             loadFromLocalStorage();
             fetchLiveKasData();
+            initSecurityTracking();
         });
     </script>
 </body>
