@@ -438,12 +438,19 @@
             tbodyMasuk.innerHTML = '';
             tbodyKeluar.innerHTML = '';
 
+            // URUTKAN BERDASARKAN TANGGAL (TERLAMA KE TERBARU)
+            const sortedData = [...dataTransaksi].sort((a, b) => {
+                const dateA = new Date(a.tgl);
+                const dateB = new Date(b.tgl);
+                return dateA - dateB;
+            });
+
             let totalMasuk = 0;
             let totalKeluar = 0;
             let noMasuk = 1;
             let noKeluar = 1;
 
-            dataTransaksi.forEach((item) => {
+            sortedData.forEach((item) => {
                 const nom = parseFloat(item.nominal) || 0;
                 const safeKet = (item.ket || '').replace(/'/g, "\\'");
 
